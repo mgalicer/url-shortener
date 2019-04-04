@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os, json
@@ -35,10 +35,6 @@ def to_base62(link_id):
         base62_string += base62_chars[i]
     
     return base62_string
-
-# takes the shorter link and converts it to base10 (to access id)
-def to_base10(link):
-    pass
 
 def add_to_db(short_link, long_link):
     db.session.add(Link(short_link=short_link, long_link=long_link))
@@ -79,7 +75,11 @@ def shorten():
 # takes a short link and redirects to the original longer link
 @app.route('/<short_link>', methods=['GET'])
 def lengthen(short_link):
-    pass
+    long_link = Link.query.filter_by(short_link=short_link).first().long_link
+    if long_link:
+        return redirect(long_link)
+    else:
+        return 'Couldn\'t find that url!', 400 
 
 if __name__ == '__main__':
     app.run()
