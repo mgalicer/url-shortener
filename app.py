@@ -13,8 +13,6 @@ db = SQLAlchemy(app)
 
 base62_chars = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9']
 
-id_counter = 1
-
 class Link(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     short_link = db.Column(db.String(8), unique=True, nullable=False)
@@ -42,6 +40,10 @@ def to_base62(link_id):
 def to_base10(link):
     pass
 
+def add_to_db(short_link, long_link):
+    db.session.add(Link(short_link=short_link, long_link=long_link))
+    db.session.commit()
+    
 # make sure everything is working ok
 @app.route('/', methods=['GET'])
 def hello():
@@ -51,19 +53,26 @@ def hello():
 @app.route('/', methods=['POST'])
 def shorten():
     response = request.get_json()
-    long_link = response['long_link']
+    if 'long_link' not in response:
+        return 'Please provide a link to convert!', 400
 
-    # the same url should always generate the same shortlink
+    long_link = response['long_link']
+    # if link already exists, we should return the already shortened url
     link = Link.query.filter_by(long_link=long_link).first()
     if link:
-        short_link = link.short_link
-    else:    
-        global id_counter
-        # convert user provided link to a shorter one, add to db
-        short_link = to_base62(id_counter)
-        db.session.add(Link(id=id_counter, short_link=short_link, long_link=long_link))
-        db.session.commit()
-        id_counter = id_counter + 1
+        return json.dumps({'short_link': link.short_link})
+
+    if 'custom_short_link' in response:
+        if len(response['custom_short_link']) > 7:
+            return 'Please provide a short link 7 characters long or less', 400
+        #if the user provided a short link, let's use that! 
+        short_link = response['custom_short_link']
+    else:
+        # if they didn't, let's create one
+        last_item_id = Link.query.order_by(Link.id.desc()).first().id
+        short_link = to_base62(last_item_id + 1)
+
+    add_to_db(short_link, long_link)
 
     return json.dumps({'short_link': short_link})
 
