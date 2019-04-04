@@ -47,18 +47,24 @@ def to_base10(link):
 def hello():
     return 'Hello, world!'
 
-# takes in the longer link, creates a new shorter link, saves shorter link to db and returns to user
+# route to shorten long links
 @app.route('/', methods=['POST'])
 def shorten():
     response = request.get_json()
     long_link = response['long_link']
 
-    global id_counter
-    short_link = to_base62(id_counter)
-    db.session.add(Link(id=id_counter, short_link=short_link, long_link=long_link))
-    db.session.commit()
-    id_counter = id_counter + 1
-    
+    # the same url should always generate the same shortlink
+    link = Link.query.filter_by(long_link=long_link).first()
+    if link:
+        short_link = link.short_link
+    else:    
+        global id_counter
+        # convert user provided link to a shorter one, add to db
+        short_link = to_base62(id_counter)
+        db.session.add(Link(id=id_counter, short_link=short_link, long_link=long_link))
+        db.session.commit()
+        id_counter = id_counter + 1
+
     return json.dumps({'short_link': short_link})
 
 # takes a short link and redirects to the original longer link
