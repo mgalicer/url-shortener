@@ -8,6 +8,7 @@ database_file = "sqlite:///{}".format(os.path.join(project_dir, "links.db"))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_file
+base_url = 'http://127.0.0.1:5000/'
 
 db = SQLAlchemy(app)
 
@@ -76,7 +77,7 @@ def shorten():
     # if link already exists, we should return the already shortened url
     link = Link.query.filter_by(long_link=long_link).first()
     if link:
-        return json.dumps({'short_link': link.short_link})
+        return json.dumps({'short_link': f'{base_url}{link.short_link}'})
 
     if 'custom_short_link' in response:
         if len(response['custom_short_link']) > 7:
@@ -90,7 +91,7 @@ def shorten():
 
     add_to_db(short_link, long_link)
 
-    return json.dumps({'short_link': short_link})
+    return json.dumps({'short_link': f'{base_url}{short_link}'})
 
 # takes a short link and redirects to the original longer link
 @app.route('/<short_link>', methods=['GET'])
