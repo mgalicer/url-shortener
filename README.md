@@ -17,7 +17,7 @@ python app.py
 
 Create a new short link from a long link
 ```
-GET http://127.0.0.1:5000/
+POST http://127.0.0.1:5000/
 {
     'long_link': 'link to site',
     'custom_short_link': 'optional'
