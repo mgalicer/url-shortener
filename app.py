@@ -20,6 +20,15 @@ class Link(db.Model):
     created_at = db.Column(db.DateTime, nullable=False,
         default=datetime.utcnow)
 
+class Visit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    link_id = db.Column(db.Integer, db.ForeignKey('link.id'),
+            nullable=False)
+    link = db.relationship('Link',
+            backref=db.backref('visits', lazy=True))
+    visit_time = db.Column(db.DateTime, nullable=False,
+            default=datetime.utcnow) 
+
 # takes the longer link and converts it to a base62 string
 def to_base62(link_id):
     base62_int = []
@@ -75,11 +84,29 @@ def shorten():
 # takes a short link and redirects to the original longer link
 @app.route('/<short_link>', methods=['GET'])
 def lengthen(short_link):
-    long_link = Link.query.filter_by(short_link=short_link).first().long_link
+    link = Link.query.filter_by(short_link=short_link).first()
+    
+    # create a new visit associated with the link
+    db.session.add(Visit(link=link))
+    db.session.commit()
+
+    long_link = link.long_link
     if long_link:
         return redirect(long_link)
     else:
         return 'Couldn\'t find that url!', 400 
+
+# returns the stats for a given link: when it was created, how many total visits, histogram of visits per day
+@app.route('/stats/<short_link>', methods=['GET'])
+def stats(short_link):
+    link = Link.query.filter_by(short_link=short_link).first()
+    created = link.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    visits = link.visits
+
+    return json.dumps({
+        'created at': created,
+        'total visits': len(visits)
+        })
 
 if __name__ == '__main__':
     app.run()
