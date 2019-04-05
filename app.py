@@ -48,7 +48,18 @@ def to_base62(link_id):
 def add_to_db(short_link, long_link):
     db.session.add(Link(short_link=short_link, long_link=long_link))
     db.session.commit()
-    
+
+# create an object that shows the number of visits per day
+def create_histogram(visits):
+    histogram = {}
+    for visit in visits:
+        visit = visit.visit_time.strftime("%Y-%m-%d")
+        if visit in histogram: 
+            histogram[visit] += 1
+        else:
+            histogram[visit] = 1
+    return histogram
+   
 # make sure everything is working ok
 @app.route('/', methods=['GET'])
 def hello():
@@ -105,7 +116,8 @@ def stats(short_link):
 
     return json.dumps({
         'created at': created,
-        'total visits': len(visits)
+        'total visits': len(visits),
+        'histogram': create_histogram(visits)
         })
 
 if __name__ == '__main__':
